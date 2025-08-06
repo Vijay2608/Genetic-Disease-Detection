@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Genetic Analyzer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    body, html {
+      margin: 0;
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      color: white;
+      background: black;
+    }
+    .video-container {
+      position: relative;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .background-video {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.5;
+      z-index: 0;
+    }
+    .overlay {
+      position: relative;
+      z-index: 1;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      height: 100%;
+      overflow: auto;
+    }
+    .title {
+      font-size: 2.5em;
+      margin: 10px 0;
+    }
+    .subtitle {
+      font-size: 1.2em;
+      margin-bottom: 20px;
+    }
+    .upload-button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 10px 18px;
+      background-color: rgba(255,255,255,0.15);
+      color: white;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 14px;
+      border: 1px solid white;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 2;
+      transition: background 0.3s;
+    }
+    .upload-button:hover {
+      background-color: rgba(255,255,255,0.3);
+    }
+    .analyzer-box {
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      margin: 20px 0;
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+    }
+    .analyzer-box h3 {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
+    .analyzer-box input {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: none;
+      margin: 5px;
+      background: rgba(255,255,255,0.8);
+    }
+    .analyzer-box button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 25px;
+      background-color: #3b82f6;
+      color: white;
+      cursor: pointer;
+      margin: 5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.3s ease;
+    }
+    .analyzer-box button:hover {
+      background-color: #2563eb;
+    }
+    .analyzer-box button:disabled {
+      background-color: #6b7280;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 15px;
+      font-size: 16px;
+      color: #ddd;
+      white-space: pre-wrap;
+      text-align: left;
+    }
+    .result-entry {
+      background-color: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="video-container">
+    <video autoplay loop muted playsinline class="background-video">
+      <source src="{{ url_for('static', filename='background.mp4') }}" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+
+    <a href="/upload-page" class="upload-button"><i class="fas fa-upload"></i> Upload Dataset</a>
+
+    <div class="overlay">
+      <h1 class="title">Genetic Analyzer</h1>
+      <p class="subtitle">Predict disease risks from gene data</p>
+
+      <div class="analyzer-box">
+        <h3>Enter Gene to Predict Disease</h3>
+        <input type="text" id="geneInput" placeholder="Enter gene" />
+        <button onclick="predictDisease()" id="predictBtn"><i class="fas fa-heartbeat"></i> Predict</button>
+        <div class="result" id="predictionResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function predictDisease() {
+      const gene = document.getElementById('geneInput').value;
+      const resultBox = document.getElementById('predictionResult');
+
+      if (!gene) {
+        resultBox.innerHTML = 'Please enter a gene.';
+        return;
+      }
+
+      resultBox.innerHTML = 'Predicting...';
+
+      try {
+        const response = await fetch('/predict-disease', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ GeneAffected: gene })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          resultBox.innerHTML = data.error;
+        } else {
+          const resultHTML = data.predictions.map(p => `
+            <div class="result-entry">
+              <strong>${p.disease}</strong><br>
+              Risk Level: <span style="color:${p.risk_label === 'High Risk' ? 'tomato' : 'lightgreen'}">${p.risk_label}</span><br>
+              Risk Probability: ${(p.risk_probability * 100).toFixed(2)}%<br>
+              Fatality Rate: ${p.fatalityRate}<br>
+              Treatment: ${p.treatment}<br>
+              Life Expectancy: ${p.lifeExpectancy}
+            </div>
+          `).join('');
+          resultBox.innerHTML = resultHTML;
+        }
+      } catch (error) {
+        resultBox.innerHTML = 'Prediction failed.';
+      }
+    }
+  </script>
+</body>
+</html>
