@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload Dataset</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    body, html {
+      height: 100%;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    .video-container {
+      position: relative;
+      height: 100vh;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+    }
+
+    .form-overlay {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: white;
+      padding: 40px 20px;
+      box-sizing: border-box;
+      overflow: auto;
+    }
+
+    .upload-box {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      animation: fadeIn 1.5s ease;
+      text-align: center;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .custom-file-input {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .custom-file-input input[type="file"] {
+      display: none;
+    }
+
+    .custom-file-input label {
+      padding: 10px 20px;
+      background-color: #3b82f6;
+      color: white;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      animation: pulse 2s infinite;
+      transition: background 0.3s ease;
+    }
+
+    .custom-file-input label:hover {
+      background-color: #2563eb;
+    }
+
+    #selectedFileName {
+      font-size: 14px;
+      color: #ddd;
+      max-width: 300px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .upload-box button {
+      padding: 10px 20px;
+      background-color: #3b82f6;
+      border: none;
+      border-radius: 25px;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      animation: pulse 2s infinite;
+      transition: background 0.3s ease;
+      margin: 5px;
+    }
+
+    .upload-box button:hover {
+      background-color: #2563eb;
+    }
+
+    .top-right-button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 10px 18px;
+      background-color: rgba(255, 255, 255, 0.15);
+      color: white;
+      border-radius: 20px;
+      text-decoration: none;
+      font-size: 14px;
+      border: 1px solid white;
+      transition: background 0.3s;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      animation: pulse 2s infinite;
+    }
+
+    .top-right-button:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .info-box {
+      position: absolute;
+      top: 40px;
+      left: 40px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      padding-top: 15px;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      color: white;
+      animation: fadeIn 1.5s ease;
+      text-align: justify;
+      width: 100%;
+      max-width: 480px;
+      height: 280px;
+      z-index: 2;
+    }
+
+    .info-box h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 30px;
+    }
+
+    .info-box p {
+      margin: 5px 0;
+      padding-left: 5px;
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 17px;
+    }
+
+    .info-box.shrink-fonts h3 {
+      font-size: 28px;
+    }
+
+    .info-box.shrink-fonts p {
+      font-size: 14px;
+    }
+
+    .info-box.shrink-fonts #headingList li {
+      font-size: 14px;
+    }
+
+    .table-wrapper {
+      animation: fadeIn 1.5s ease;
+      position: relative;
+      width: 100%;
+      max-width: 1850px;
+      margin-top: 30px;
+      height: calc(98vh - 400px);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .table-header {
+      height: auto;
+    }
+
+    .table-body {
+      height: calc(100% - 40px);
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .table-body::-webkit-scrollbar {
+      display: none;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+      color: white;
+    }
+
+    thead, tbody tr {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-align: left;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    th {
+      font-weight: bold;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(59,130,246, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(59,130,246, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(59,130,246, 0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="video-container">
+    <video autoplay muted loop>
+      <source src="/static/background.mp4" type="video/mp4">
+    </video>
+
+    <a class="top-right-button" href="/"><i class="fas fa-arrow-left"></i> Home</a>
+
+    <div class="info-box" id="infoBox">
+      <h3>Data Info</h3>
+      <p><strong>Records:</strong> <span id="recordCount">0</span></p>
+      <p><strong>Headings:</strong></p>
+      <p id="headingList"></p>
+    </div>
+
+    <div class="form-overlay">
+      <div class="upload-box">
+        <h1>Upload Dataset</h1>
+        <p>Select a CSV file to upload it into the database.</p>
+        <div class="custom-file-input">
+          <input type="file" id="fileInput" accept=".csv" onchange="updateFileName()" />
+          <br><br><br>
+          <label for="fileInput"> Choose CSV File</label>
+          <span id="selectedFileName">No file selected</span>
+        </div>
+        <button onclick="uploadCSV()"><i class="fas fa-paperclip"></i> Upload</button>
+        <button onclick="clearTable()"><i class="fas fa-trash"></i> Clear</button>
+        <p id="message" style="margin-top: 15px;"></p>
+      </div>
+
+      <div class="table-wrapper" id="dataPreview" style="display: none;">
+        <div class="table-header">
+          <table id="previewTableHeader"><thead></thead></table>
+        </div>
+        <div class="table-body">
+          <table id="previewTableBody"><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function updateFileName() {
+      const input = document.getElementById('fileInput');
+      const fileNameSpan = document.getElementById('selectedFileName');
+      if (input.files.length) {
+        fileNameSpan.textContent = input.files[0].name;
+      } else {
+        fileNameSpan.textContent = 'No file selected';
+      }
+    }
+
+    function renderTableFromData(data) {
+      const previewDiv = document.getElementById('dataPreview');
+      const headerTable = document.getElementById('previewTableHeader').querySelector('thead');
+      const bodyTable = document.getElementById('previewTableBody').querySelector('tbody');
+      const recordCount = document.getElementById('recordCount');
+      const headingList = document.getElementById('headingList');
+      const infoBox = document.getElementById('infoBox');
+
+      if (!data || data.length === 0) return;
+
+      const keys = Object.keys(data[0]);
+
+      if (keys.length > 6) {
+        infoBox.classList.add('shrink-fonts');
+      } else {
+        infoBox.classList.remove('shrink-fonts');
+      }
+
+      recordCount.textContent = data.length;
+      headingList.innerHTML = '';
+      keys.forEach(key => {
+        const li = document.createElement('li');
+        li.textContent = key;
+        headingList.appendChild(li);
+      });
+
+      let headerRow = '<tr>';
+      keys.forEach(key => { headerRow += `<th>${key}</th>`; });
+      headerRow += '</tr>';
+      headerTable.innerHTML = headerRow;
+
+      let bodyHTML = '';
+      data.forEach(row => {
+        bodyHTML += '<tr>';
+        keys.forEach(key => {
+          bodyHTML += `<td>${row[key] !== undefined ? row[key] : ''}</td>`;
+        });
+        bodyHTML += '</tr>';
+      });
+      bodyTable.innerHTML = bodyHTML;
+
+      previewDiv.style.display = 'block';
+    }
+
+    async function uploadCSV() {
+      const input = document.getElementById('fileInput');
+      const message = document.getElementById('message');
+      if (!input.files.length) {
+        message.textContent = 'Please select a CSV file first.';
+        return;
+      }
+
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      Papa.parse(file, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          const data = results.data;
+          renderTableFromData(data);
+          localStorage.setItem('csvPreviewData', JSON.stringify(data));
+        }
+      });
+
+      try {
+        const response = await fetch('/upload-dataset', {
+          method: 'POST',
+          body: formData
+        });
+        const result = await response.json();
+        message.textContent = result.message || 'Upload complete.';
+      } catch (err) {
+        message.textContent = 'Upload failed.';
+        console.error(err);
+      }
+    }
+
+    function clearTable() {
+      document.getElementById('previewTableHeader').querySelector('thead').innerHTML = '';
+      document.getElementById('previewTableBody').querySelector('tbody').innerHTML = '';
+      document.getElementById('dataPreview').style.display = 'none';
+      document.getElementById('fileInput').value = '';
+      document.getElementById('selectedFileName').textContent = 'No file selected';
+      document.getElementById('message').textContent = '';
+      document.getElementById('recordCount').textContent = '0';
+      document.getElementById('headingList').innerHTML = '';
+      document.getElementById('infoBox').classList.remove('shrink-fonts');
+      localStorage.removeItem('csvPreviewData');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedData = localStorage.getItem('csvPreviewData');
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          renderTableFromData(parsed);
+        } catch (e) {
+          console.error('Failed to restore CSV preview:', e);
+          localStorage.removeItem('csvPreviewData');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
